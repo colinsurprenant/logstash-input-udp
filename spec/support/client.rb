@@ -7,11 +7,10 @@ module LogStash::Inputs::Test
 
     attr_reader :host, :port, :socket
 
-    def initialize(port)
+    def initialize(port, host="0.0.0.0")
       @port = port
-      @host = "0.0.0.0"
-      @socket = UDPSocket.new
-      socket.connect(host, port)
+      @host = host
+      @socket = UDPSocket.new(Socket::AF_INET6)
     end
 
     def send(msg="")
@@ -24,8 +23,7 @@ module LogStash::Inputs::Test
     end
 
     def send(msg)
-      socket.connect(host, port) if socket.closed?
-      socket.send(msg, 0)
+      socket.send(msg, 0, host, port)
     end
 
     def close

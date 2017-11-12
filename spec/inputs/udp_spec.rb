@@ -23,30 +23,39 @@ describe LogStash::Inputs::Udp do
   end
 
   describe "receive" do
+    shared_examples "receiving" do
+      before(:each) do
+        subject.register
+      end
 
-    let(:client) { LogStash::Inputs::Test::UDPClient.new(port) }
-    let(:nevents) { 10 }
+      let(:nevents) { 10 }
 
-    let(:events) do
-      helper.input(subject, nevents) do
-        nevents.times do |i|
-          client.send("msg #{i}")
+      let(:events) do
+        helper.input(subject, nevents) do
+          nevents.times do |i|
+            client.send("msg #{i}")
+          end
+        end
+      end
+
+      it "should receive events been generated" do
+        expect(events.size).to be(nevents)
+        messages = events.map { |event| event.get("message")}
+        messages.each do |message|
+          expect(message).to match(/msg \d+/)
         end
       end
     end
 
-    before(:each) do
-      subject.register
+    context "ipv4" do
+      let(:client) { LogStash::Inputs::Test::UDPClient.new(port, "127.0.0.1") }
+      include_examples "receiving"
     end
 
-    it "should receive events been generated" do
-      expect(events.size).to be(nevents)
-      messages = events.map { |event| event.get("message")}
-      messages.each do |message|
-        expect(message).to match(/msg \d+/)
-      end
+    context "ipv6" do
+      let(:client) { LogStash::Inputs::Test::UDPClient.new(port, "::1") }
+      include_examples "receiving"
     end
-
   end
 
   it_behaves_like "an interruptible input plugin" do
